@@ -37,7 +37,7 @@ jobs:
         VALIDATE_JAVASCRIPT_ES: false
     
     - name: Dependency Check
-      uses: actions/dependency-review-action@v3
+      uses: actions/dependency-review-action@v4
       with:
         fail-on-severity: moderate
     

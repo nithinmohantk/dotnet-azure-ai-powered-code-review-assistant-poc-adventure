@@ -1,0 +1,202 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codereview-api
+  namespace: codereview
+  labels:
+    app: codereview-api
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: codereview-api
+  template:
+    metadata:
+      labels:
+        app: codereview-api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: api
+        image: codereview.azurecr.io/codereview-api:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: https
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: sql-connection-string
+        - name: Redis__ConnectionString
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: redis-connection-string
+        - name: EventBus__ConnectionString
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: service-bus-connection-string
+        - name: AzureOpenAI__Endpoint
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: azure-openai-endpoint
+        - name: AzureOpenAI__Key
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: azure-openai-key
+        - name: AzureOpenAI__DeploymentName
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: azure-openai-deployment-name
+        - name: GitHub__Token
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: github-token
+        - name: AzureAd__TenantId
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: app-tenant-id
+        - name: AzureAd__ClientId
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: app-client-id
+        - name: AzureAd__ClientSecret
+          valueFrom:
+            secretKeyRef:
+              name: codereview-secrets
+              key: app-client-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        fsGroup: 1001
+      imagePullSecrets:
+      - name: acr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: codereview-api-service
+  namespace: codereview
+  labels:
+    app: codereview-api
+spec:
+  selector:
+    app: codereview-api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8081
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: codereview-api
+  namespace: codereview
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: codereview-api-pdb
+  namespace: codereview
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: codereview-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: codereview-api-hpa
+  namespace: codereview
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: codereview-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max

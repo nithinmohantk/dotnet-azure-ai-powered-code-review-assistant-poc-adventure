@@ -1,0 +1,74 @@
+name: CD - Production
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Build Application
+      run: dotnet publish ./src/WebApi/CodeReviewAssistant.WebApi -c Release -o ./publish
+    
+    - name: Build Docker Image
+      run: |
+        VERSION=${{ github.ref_name }}
+        docker build -t codereview-api:$VERSION ./docker
+        docker tag codereview-api:$VERSION ghcr.io/${{ github.repository }}:$VERSION
+        docker tag codereview-api:$VERSION ghcr.io/${{ github.repository }}:latest
+    
+    - name: Login to Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Push Docker Image
+      run: |
+        docker push ghcr.io/${{ github.repository }}:$VERSION
+        docker push ghcr.io/${{ github.repository }}:latest
+    
+    - name: Deploy to Kubernetes
+      run: |
+        echo "${{ secrets.KUBECONFIG_PROD }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        helm upgrade --install codereview-api ./k8s/helmcharts/codereview-api \
+          --namespace production \
+          --create-namespace \
+          --set image.tag=$VERSION \
+          --set environment=production \
+          --values ./k8s/helmcharts/codereview-api/values-prod.yaml
+    
+    - name: Health Check
+      run: |
+        # Wait for deployment to be ready
+        kubectl wait --for=condition=ready pod -l app=codereview-api -n production --timeout=600s
+        # Verify deployment health
+        kubectl get pods -n production -l app=codereview-api
+        # Test API endpoint
+        curl -f https://api.codereview.example.com/health || exit 1
+    
+    - name: Notify Teams
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        text: "Production deployment completed: ${{ github.ref_name }}"

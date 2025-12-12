@@ -1,0 +1,91 @@
+# .NET
+bin/
+obj/
+**/*.csproj
+**/*.sln
+**/*.user
+**/*.userosscache
+**/*.suo
+**/*.cache
+**/*.dll
+**/*.exe
+**/*.pdb
+**/*.xml
+**/*.config
+**/.vs/
+**/.vscode/
+**/Properties/launchSettings.json
+
+# Testing
+**/*.Tests/bin/
+**/*.Tests/obj/
+TestResults/
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Documentation
+docs/_site/
+*.md
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+**/*.log
+logs/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Tools
+tools/
+node_modules/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+#antal files
+*. 
+# Build artifacts
+O
+publish/
+NES/
+**/ís
+**/*.nupkgzin
+**/*.snupkg
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Security
+*.pfx
+*.p12
+*.key
+*.pem
+*.crt
+*.cer
+
+# Database
+*.mdf
+*.ldf
+*.ndf
+*.sdf

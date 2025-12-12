@@ -1,0 +1,214 @@
+# Default values for codereview-api.
+replicaCount: 3
+
+image:
+  repository: ghcr.io/your-org/code-review-assistant
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1001
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: api.codereview.example.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: Prefix
+        - path: /swagger(/|$)(.*)
+          pathType: Prefix
+        - path: /health(/|$)(.*)
+          pathType: Prefix
+  tls:
+    - secretName: codereview-api-tls
+      hosts:
+        - api.codereview.example.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - codereview-api
+        topologyKey: kubernetes.io/hostname
+
+# Application configuration
+app:
+  environment: production
+  aspnetcore:
+    urls: "http://+:8080"
+    environment: "Production"
+  logging:
+    level: "Information"
+    console:
+      enabled: true
+  cors:
+    allowedOrigins: "*"
+    allowedMethods: "GET, POST, PUT, DELETE, OPTIONS"
+    allowedHeaders: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+
+# Database configuration
+database:
+  connectionSecret: "codereview-secrets"
+  connectionStringKey: "sql-connection-string"
+
+# Redis configuration
+redis:
+  connectionSecret: "codereview-secrets"
+  connectionStringKey: "redis-connection-string"
+
+# Service Bus configuration
+serviceBus:
+  connectionSecret: "codereview-secrets"
+  connectionStringKey: "service-bus-connection-string"
+
+# Azure OpenAI configuration
+openai:
+  endpointSecret: "codereview-secrets"
+  endpointKey: "azure-openai-endpoint"
+  keySecret: "codereview-secrets"
+  keyKey: "azure-openai-key"
+  deploymentNameSecret: "codereview-secrets"
+  deploymentNameKey: "azure-openai-deployment-name"
+
+# GitHub configuration
+github:
+  tokenSecret: "codereview-secrets"
+  tokenKey: "github-token"
+
+# Azure AD configuration
+azureAd:
+  tenantIdSecret: "codereview-secrets"
+  tenantIdKey: "app-tenant-id"
+  clientIdSecret: "codereview-secrets"
+  clientIdKey: "app-client-id"
+  clientSecretSecret: "codereview-secrets"
+  clientSecretKey: "app-client-secret"
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: codereview-api
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: kube-system
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: codereview-monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 1433
+        - protocol: TCP
+          port: 6380
+        - protocol: TCP
+          port: 5671

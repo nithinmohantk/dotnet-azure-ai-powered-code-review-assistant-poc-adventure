@@ -1,0 +1,178 @@
+groups:
+  - name: codereview-api-alerts
+    rules:
+      # API Health Alerts
+      - alert: CodeReviewAPIDown
+        expr: up{job="codereview-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: codereview-api
+        annotations:
+          summary: "Code Review Assistant API is down"
+          description: "Code Review Assistant API has been down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="codereview-api",status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: codereview-api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="codereview-api"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: codereview-api
+        annotations:
+          summary: "High latency detected"
+          description: "95th percentile latency is {{ $value }} seconds."
+
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes{job="codereview-api"} / 1024 / 1024) > 500
+        for: 5m
+        labels:
+          severity: warning
+          service: codereview-api
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }} MB."
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="codereview-api"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: codereview-api
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%."
+
+      # Database Alerts
+      - alert: DatabaseConnectionFailure
+        expr: up{job="sqlserver"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failure"
+          description: "Cannot connect to SQL Server database."
+
+      - alert: DatabaseHighConnections
+        expr: sqlserver_connections_total > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connections"
+          description: "Database has {{ $value }} active connections."
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache is not responding."
+
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value }}%."
+
+      # Kubernetes Alerts
+      - alert: PodRestartHigh
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod restarting frequently"
+          description: "Pod {{ $labels.pod }} is restarting frequently."
+
+      - alert: PodNotReady
+        expr: kube_pod_status_ready{condition="true"} == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod not ready"
+          description: "Pod {{ $labels.pod }} has been not ready for more than 10 minutes."
+
+      - alert: NodeDiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Node disk space low"
+          description: "Node {{ $labels.node }} has less than 10% disk space available."
+
+      - alert: NodeMemoryHigh
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Node memory low"
+          description: "Node {{ $labels.node }} has less than 10% memory available."
+
+  - name: business-metrics
+    rules:
+      - alert: LowCodeReviewProcessingRate
+        expr: rate(codereview_reviews_processed_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low code review processing rate"
+          description: "Code review processing rate is {{ $value }} per second."
+
+      - alert: HighCodeReviewFailureRate
+        expr: rate(codereview_reviews_failed_total[5m]) / rate(codereview_reviews_processed_total[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "High code review failure rate"
+          description: "Code review failure rate is {{ $value | humanizePercentage }}."
+
+      - alert: OpenAIQuotaExhausted
+        expr: codereview_openai_quota_remaining == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ai
+        annotations:
+          summary: "OpenAI quota exhausted"
+          description: "Azure OpenAI quota has been exhausted."
+
+      - alert: GitHubAPIRateLimit
+        expr: codereview_github_rate_limit_remaining < 100
+        for: 5m
+        labels:
+          severity: warning
+          service: github
+        annotations:
+          summary: "GitHub API rate limit low"
+          description: "GitHub API rate limit remaining is {{ $value }}."

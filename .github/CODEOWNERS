@@ -1,0 +1,55 @@
+# Global owners - these users will be requested for review on all PRs
+* @org/platform-team @org/security-team
+
+# Infrastructure and DevOps
+/infrastructure/ @org/devops-team @org/cloud-architects
+/k8s/ @org/devops-team @org/sre-team
+/docker/ @org/devops-team
+/.github/workflows/ @org/devops-team @org/security-team
+/terraform/ @org/devops-team @org/cloud-architects
+
+# Application code
+/src/ @org/backend-team @org/platform-team
+/src/WebApi/ @org/backend-team @org/api-team
+/src/Domain/ @org/backend-team @org/architects
+/src/Application/ @org/backend-team
+/src/Infrastructure/ @org/backend-team @org/devops-team
+
+# Tests
+/tests/ @org/qa-team @org/backend-team
+
+# Documentation
+/docs/ @org/tech-writers @org/platform-team
+*.md @org/tech-writers
+
+# Security sensitive files
+/src/**/Security/ @org/security-team
+/src/**/Authentication/ @org/security-team
+/src/**/Authorization/ @org/security-team
+**/*Security*.cs @org/security-team
+**/*Auth*.cs @org/security-team
+
+# Database and data models
+/src/**/Persistence/ @org/backend-team @org/data-team
+/src/Domain/Entities/ @org/backend-team @org/architects
+**/Migrations/ @org/backend-team @org/data-team
+
+# Configuration files
+*.json @org/devops-team
+*.yaml @org/devops-team
+*.yml @org/devops-team
+appsettings*.json @org/backend-team @org/devops-team
+
+# Architecture diagrams
+/diagrams/ @org/architects @org/platform-team
+*.drawio @org/architects
+
+# Build and dependency files
+*.csproj @org/backend-team
+*.sln @org/backend-team
+Directory.Build.props @org/backend-team @org/architects
+global.json @org/backend-team
+
+# Security and compliance
+SECURITY.md @org/security-team
+LICENSE @org/legal-team

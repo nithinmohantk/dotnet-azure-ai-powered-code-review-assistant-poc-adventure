@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "codereview-api.fullname" . }}
+  labels:
+    {{- include "codereview-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "codereview-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "codereview-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "codereview-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.app.aspnetcore.environment }}
+            - name: ASPNETCORE_URLS
+              value: {{ .Values.app.aspnetcore.urls }}
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.connectionSecret }}
+                  key: {{ .Values.database.connectionStringKey }}
+            - name: Redis__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.connectionSecret }}
+                  key: {{ .Values.redis.connectionStringKey }}
+            - name: EventBus__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.serviceBus.connectionSecret }}
+                  key: {{ .Values.serviceBus.connectionStringKey }}
+            - name: AzureOpenAI__Endpoint
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.openai.endpointSecret }}
+                  key: {{ .Values.openai.endpointKey }}
+            - name: AzureOpenAI__Key
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.openai.keySecret }}
+                  key: {{ .Values.openai.keyKey }}
+            - name: AzureOpenAI__DeploymentName
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.openai.deploymentNameSecret }}
+                  key: {{ .Values.openai.deploymentNameKey }}
+            - name: GitHub__Token
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.github.tokenSecret }}
+                  key: {{ .Values.github.tokenKey }}
+            - name: AzureAd__TenantId
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.azureAd.tenantIdSecret }}
+                  key: {{ .Values.azureAd.tenantIdKey }}
+            - name: AzureAd__ClientId
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.azureAd.clientIdSecret }}
+                  key: {{ .Values.azureAd.clientIdKey }}
+            - name: AzureAd__ClientSecret
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.azureAd.clientSecretSecret }}
+                  key: {{ .Values.azureAd.clientSecretKey }}
+            - name: Logging__LogLevel__Default
+              value: {{ .Values.app.logging.level }}
+            - name: Logging__Console__Enabled
+              value: {{ .Values.app.logging.console.enabled | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

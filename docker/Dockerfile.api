@@ -1,0 +1,63 @@
+# Multi-stage Dockerfile for Code Review Assistant API
+# Stage 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj files and restore dependencies
+COPY ["src/Core/Domain/CodeReviewAssistant.Core.Domain/CodeReviewAssistant.Core.Domain.csproj", "src/Core/Domain/CodeReviewAssistant.Core.Domain/"]
+COPY ["src/Core/Application/CodeReviewAssistant.Core.Application/CodeReviewAssistant.Core.Application.csproj", "src/Core/Application/CodeReviewAssistant.Core.Application/"]
+COPY ["src/Infrastructure/Persistence/CodeReviewAssistant.Infrastructure.Persistence/CodeReviewAssistant.Infrastructure.Persistence.csproj", "src/Infrastructure/Persistence/CodeReviewAssistant.Infrastructure.Persistence/"]
+COPY ["src/Infrastructure/ExternalServices/CodeReviewAssistant.Infrastructure.ExternalServices/CodeReviewAssistant.Infrastructure.ExternalServices.csproj", "src/Infrastructure/ExternalServices/CodeReviewAssistant.Infrastructure.ExternalServices/"]
+COPY ["src/Infrastructure/Messaging/CodeReviewAssistant.Infrastructure.Messaging/CodeReviewAssistant.Infrastructure.Messaging.csproj", "src/Infrastructure/Messaging/CodeReviewAssistant.Infrastructure.Messaging/"]
+COPY ["src/Shared/CodeReviewAssistant.Shared/CodeReviewAssistant.Shared.csproj", "src/Shared/CodeReviewAssistant.Shared/"]
+COPY ["src/WebApi/CodeReviewAssistant.WebApi/CodeReviewAssistant.WebApi.csproj", "src/WebApi/CodeReviewAssistant.WebApi/"]
+
+RUN dotnet restore "src/WebApi/CodeReviewAssistant.WebApi/CodeReviewAssistant.WebApi.csproj"
+
+# Copy the rest of the source code
+COPY . .
+
+# Build and publish
+WORKDIR "/src/src/WebApi/CodeReviewAssistant.WebApi"
+RUN dotnet build "CodeReviewAssistant.WebApi.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "CodeReviewAssistant.WebApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+WORKDIR /app
+
+# Install security updates
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init curl && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 appgroup && \
+    adduser -u 1001 -G appgroup -s /bin/sh -D appuser
+
+# Copy published files
+COPY --from=publish /app/publish .
+
+# Change ownership to non-root user
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Use dumb-init as PID 1
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["dotnet", "CodeReviewAssistant.WebApi.dll"]

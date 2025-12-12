@@ -1,0 +1,60 @@
+name: CD - Staging
+
+on:
+  push:
+    branches: [ release/* ]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [ release/* ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Build Application
+      run: dotnet publish ./src/WebApi/CodeReviewAssistant.WebApi -c Release -o ./publish
+    
+    - name: Build Docker Image
+      run: |
+        docker build -t codereview-api:staging ./docker
+        docker tag codereview-api:staging ghcr.io/${{ github.repository }}:staging
+    
+    - name: Login to Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Push Docker Image
+      run: docker push ghcr.io/${{ github.repository }}:staging
+    
+    - name: Deploy to Kubernetes
+      run: |
+        echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        helm upgrade --install codereview-api ./k8s/helmcharts/codereview-api \
+          --namespace staging \
+          --create-namespace \
+          --set image.tag=staging \
+          --set environment=staging \
+          --values ./k8s/helmcharts/codereview-api/values-staging.yaml
+    
+    - name: Run E2E Tests
+      run: |
+        # Wait for deployment to be ready
+        kubectl wait --for=condition=ready pod -l app=codereview-api -n staging --timeout=300s
+        # Run E2E tests against staging environment
+        dotnet test ./tests/E2E --configuration Release --environment=Staging

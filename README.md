@@ -1,9 +1,11 @@
 # AI-Powered Code Review Assistant
-![Build Status](https://github.com/your-org/ai-code-review-assistant/workflows/CI/badge.svg)
-![Coverage](https://codecov.io/gh/your-org/ai-code-review-assistant/branch/main/graph/badge.svg)
+
+![Build Status](https://github.com/nithinmohantk/dotnet-azure-ai-powered-code-review-assistant-poc-adventure/workflows/CI/badge.svg)
+![Coverage](https://codecov.io/gh/nithinmohantk/dotnet-azure-ai-powered-code-review-assistant-poc-adventure/branch/main/graph/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-.NET%2010-purple.svg)
 ![Cloud](https://img.shields.io/badge/cloud-Azure-blue.svg)
+![POC](https://img.shields.io/badge/status-POC-orange.svg)
 
 A production-grade, enterprise-ready AI-powered code review assistant built with .NET 10 and Azure.
 ## Getting Started

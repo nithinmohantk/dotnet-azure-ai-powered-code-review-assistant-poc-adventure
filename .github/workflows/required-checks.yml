@@ -1,0 +1,47 @@
+name: Required Checks
+
+on:
+  pull_request:
+    branches: [ main, develop, release/* ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Unit Tests
+      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+    
+    - name: Integration Tests
+      run: dotnet test ./tests/Integration --no-build --configuration Release --verbosity normal
+    
+    - name: Security Scan
+      uses: github/super-linter@v4
+      env:
+        DEFAULT_BRANCH: main
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VALIDATE_JAVA: false
+        VALIDATE_PYTHON: false
+        VALIDATE_JAVASCRIPT_ES: false
+    
+    - name: Dependency Check
+      uses: actions/dependency-review-action@v3
+      with:
+        fail-on-severity: moderate
+    
+    - name: License Check
+      uses: fossa-contrib/fossa-action@v2
+      with:
+        api-key: ${{ secrets.FOSSA_API_KEY }}

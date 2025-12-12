@@ -162,8 +162,8 @@ public class Worker : BackgroundService
 
     public override void Dispose()
     {
-        _serviceBusProcessor?.Dispose();
-        _serviceBusClient?.Dispose();
+        _serviceBusProcessor?.CloseAsync();
+        _serviceBusClient?.DisposeAsync();
         base.Dispose();
     }
 }

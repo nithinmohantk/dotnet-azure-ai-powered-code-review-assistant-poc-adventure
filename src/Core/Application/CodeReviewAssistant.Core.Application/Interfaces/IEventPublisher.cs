@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CodeReviewAssistant.Application.Interfaces
+namespace CodeReviewAssistant.Core.Application.Interfaces
 {
     public interface IEventPublisher
     {

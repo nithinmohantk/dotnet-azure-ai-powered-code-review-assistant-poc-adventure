@@ -1,5 +1,11 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
+using CodeReviewAssistant.Core.Domain.Entities;
+using CodeReviewAssistant.Core.Domain.Events;
 using CodeReviewAssistant.Core.Application.DTOs;
+using CodeReviewAssistant.Core.Application.Interfaces;
 
 namespace CodeReviewAssistant.Core.Application.Queries
 {

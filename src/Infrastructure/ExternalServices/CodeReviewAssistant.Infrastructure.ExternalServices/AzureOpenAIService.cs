@@ -7,8 +7,9 @@ using Azure.AI.OpenAI;
 using Azure.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using CodeReviewAssistant.Application.Interfaces;
+using CodeReviewAssistant.Core.Application.Interfaces;
 using CodeReviewAssistant.Core.Domain.ValueObjects;
+using CodeReviewAssistant.Core.Domain.Events;
 
 namespace CodeReviewAssistant.Infrastructure.ExternalServices
 {
@@ -41,7 +42,9 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
 
             if (!string.IsNullOrEmpty(key))
             {
-                _openAIClient = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
+                // Set environment variable and use default credential
+                Environment.SetEnvironmentVariable("AZURE_OPENAI_API_KEY", key);
+                _openAIClient = new OpenAIClient(endpoint);
             }
             else
             {
@@ -57,20 +60,18 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
                 var language = DetermineLanguage(filePath);
                 var prompt = GenerateCodeAnalysisPrompt(code, filePath, language);
 
-                var response = await _openAIClient.GetChatCompletionsAsync(
-                    _deploymentName,
-                    new ChatCompletionsOptions
-                    {
-                        Messages =
-                        {
-                            new ChatMessage(ChatRole.System, "You are an expert code reviewer. Provide detailed, constructive feedback on code quality, security, performance, and best practices."),
-                            new ChatMessage(ChatRole.User, prompt)
-                        },
-                        Temperature = 0.3f,
-                        MaxTokens = 2000,
-                        ChoiceCount = 1
-                    },
-                    cancellationToken);
+                var messages = new List<ChatRequestMessage>
+                {
+                    new ChatRequestSystemMessage("You are an expert code reviewer. Provide detailed, constructive feedback on code quality, security, performance, and best practices."),
+                    new ChatRequestUserMessage(prompt)
+                };
+
+                var response = await _openAIClient.GetChatCompletionsAsync(new ChatCompletionsOptions(_deploymentName, messages)
+                {
+                    Temperature = 0.3f,
+                    MaxTokens = 2000,
+                    ChoiceCount = 1
+                }, cancellationToken);
 
                 var analysis = response.Value.Choices[0].Message.Content;
                 var issues = ParseAnalysisResponse(analysis, filePath);
@@ -103,20 +104,18 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
 
                 // Generate repository-level analysis
                 var repositoryPrompt = GenerateRepositoryAnalysisPrompt(repositoryContent, files.Keys.ToList());
-                var response = await _openAIClient.GetChatCompletionsAsync(
-                    _deploymentName,
-                    new ChatCompletionsOptions
-                    {
-                        Messages =
-                        {
-                            new ChatMessage(ChatRole.System, "You are an expert software architect. Analyze the overall repository structure and provide architectural insights."),
-                            new ChatMessage(ChatRole.User, repositoryPrompt)
-                        },
-                        Temperature = 0.3f,
-                        MaxTokens = 1500,
-                        ChoiceCount = 1
-                    },
-                    cancellationToken);
+                var messages = new List<ChatRequestMessage>
+                {
+                    new ChatRequestSystemMessage("You are an expert software architect. Analyze the overall repository structure and provide architectural insights."),
+                    new ChatRequestUserMessage(repositoryPrompt)
+                };
+
+                var response = await _openAIClient.GetChatCompletionsAsync(new ChatCompletionsOptions(_deploymentName, messages)
+                {
+                    Temperature = 0.3f,
+                    MaxTokens = 1500,
+                    ChoiceCount = 1
+                }, cancellationToken);
 
                 var repositoryAnalysis = response.Value.Choices[0].Message.Content;
                 recommendations.Add(repositoryAnalysis);
@@ -139,21 +138,18 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             try
             {
                 var prompt = GenerateSummaryPrompt(issues);
+                var messages = new List<ChatRequestMessage>
+                {
+                    new ChatRequestSystemMessage("You are a technical lead summarizing code review findings. Provide a concise, actionable summary."),
+                    new ChatRequestUserMessage(prompt)
+                };
 
-                var response = await _openAIClient.GetChatCompletionsAsync(
-                    _deploymentName,
-                    new ChatCompletionsOptions
-                    {
-                        Messages =
-                        {
-                            new ChatMessage(ChatRole.System, "You are a technical lead summarizing code review findings. Provide a concise, actionable summary."),
-                            new ChatMessage(ChatRole.User, prompt)
-                        },
-                        Temperature = 0.2f,
-                        MaxTokens = 1000,
-                        ChoiceCount = 1
-                    },
-                    cancellationToken);
+                var response = await _openAIClient.GetChatCompletionsAsync(new ChatCompletionsOptions(_deploymentName, messages)
+                {
+                    Temperature = 0.2f,
+                    MaxTokens = 1000,
+                    ChoiceCount = 1
+                }, cancellationToken);
 
                 return response.Value.Choices[0].Message.Content;
             }
@@ -169,21 +165,18 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             try
             {
                 var prompt = GenerateSuggestionPrompt(issue);
+                var messages = new List<ChatRequestMessage>
+                {
+                    new ChatRequestSystemMessage("You are a senior developer providing specific code improvement suggestions."),
+                    new ChatRequestUserMessage(prompt)
+                };
 
-                var response = await _openAIClient.GetChatCompletionsAsync(
-                    _deploymentName,
-                    new ChatCompletionsOptions
-                    {
-                        Messages =
-                        {
-                            new ChatMessage(ChatRole.System, "You are a senior developer providing specific code improvement suggestions."),
-                            new ChatMessage(ChatRole.User, prompt)
-                        },
-                        Temperature = 0.3f,
-                        MaxTokens = 500,
-                        ChoiceCount = 1
-                    },
-                    cancellationToken);
+                var response = await _openAIClient.GetChatCompletionsAsync(new ChatCompletionsOptions(_deploymentName, messages)
+                {
+                    Temperature = 0.3f,
+                    MaxTokens = 500,
+                    ChoiceCount = 1
+                }, cancellationToken);
 
                 return response.Value.Choices[0].Message.Content;
             }
@@ -366,7 +359,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             if (desc.Contains("error") || desc.Contains("exception") || desc.Contains("handle"))
                 return IssueCategory.ErrorHandling;
             if (desc.Contains("design") || desc.Contains("pattern") || desc.Contains("arch"))
-                return IssueCategory.Architecture;
+                return IssueCategory.Design;
             
             return IssueCategory.CodeQuality;
         }

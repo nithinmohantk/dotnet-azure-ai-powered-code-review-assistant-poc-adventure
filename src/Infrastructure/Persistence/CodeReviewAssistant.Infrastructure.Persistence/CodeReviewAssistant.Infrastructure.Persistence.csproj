@@ -10,6 +10,13 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.AzureKeyVault" Version="3.1.24" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Azure.Identity" Version="1.11.4" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <ProjectReference Include="..\..\..\Core\Application\CodeReviewAssistant.Core.Application\CodeReviewAssistant.Core.Application.csproj" />
     <ProjectReference Include="..\..\..\Core\Domain\CodeReviewAssistant.Core.Domain\CodeReviewAssistant.Core.Domain.csproj" />
   </ItemGroup>

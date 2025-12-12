@@ -2,6 +2,85 @@ using System;
 
 namespace CodeReviewAssistant.Core.Domain.Events
 {
+    public enum Severity
+    {
+        Info,
+        Low,
+        Minor,
+        Medium,
+        Major,
+        High,
+        Critical
+    }
+
+    public enum UserRole
+    {
+        Developer,
+        Reviewer,
+        Admin,
+        Guest
+    }
+
+    public enum ReviewQuality
+    {
+        VeryPoor,
+        Poor,
+        Fair,
+        Good,
+        Excellent
+    }
+
+    public enum ReviewRisk
+    {
+        Minimal,
+        Low,
+        Medium,
+        High,
+        Critical
+    }
+
+    public enum ReviewStatus
+    {
+        Pending,
+        InProgress,
+        Completed,
+        Rejected,
+        Approved,
+        Failed
+    }
+
+    public enum Priority
+    {
+        Low,
+        Medium,
+        High,
+        Critical
+    }
+
+    public enum IssueCategory
+    {
+        Security,
+        Performance,
+        CodeQuality,
+        Style,
+        Documentation,
+        ErrorHandling,
+        Design,
+        Testing,
+        Configuration,
+        Dependencies,
+        Other
+    }
+
+    public enum AnalysisStatus
+    {
+        Pending,
+        InProgress,
+        Completed,
+        Failed,
+        Cancelled
+    }
+
     public abstract class DomainEvent
     {
         public Guid Id { get; private set; }

@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using CodeReviewAssistant.Core.Domain.ValueObjects;
+using GitHubRepository = CodeReviewAssistant.Core.Domain.ValueObjects.GitHubRepository;
 
-namespace CodeReviewAssistant.Application.Interfaces
+namespace CodeReviewAssistant.Core.Application.Interfaces
 {
     public interface IGitHubService
     {
@@ -17,6 +17,7 @@ namespace CodeReviewAssistant.Application.Interfaces
         Task<string> CreatePullRequestCommentAsync(GitHubRepository repository, int pullRequestNumber, string body, CancellationToken cancellationToken = default);
         Task<string> CreateCommitCommentAsync(GitHubRepository repository, string commitHash, string body, string filePath = null, int? line = null, CancellationToken cancellationToken = default);
         Task<GitHubRepositoryInfo> GetRepositoryInfoAsync(GitHubRepository repository, CancellationToken cancellationToken = default);
+        bool ValidateWebhookSignature(string requestBody, string signature);
     }
 
     public class GitHubFile
@@ -155,10 +156,14 @@ namespace CodeReviewAssistant.Application.Interfaces
 
     public class GitHubRepositoryInfo
     {
+        public int Id { get; set; }
         public string Name { get; set; }
         public string FullName { get; set; }
         public string Description { get; set; }
         public bool Private { get; set; }
+        public GitHubUser Owner { get; set; }
+        public string HtmlUrl { get; set; }
+        public bool Fork { get; set; }
         public string DefaultBranch { get; set; }
         public GitHubRepositoryStats Stats { get; set; }
         public List<string> Languages { get; set; }

@@ -70,6 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance optimization needed
 - Documentation incomplete
 
-[Unreleased]: https://github.com/your-org/ai-code-review-assistant/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/your-org/ai-code-review-assistant/compare/v0.9.0...v1.0.0
-[0.9.0]: https://github.com/your-org/ai-code-review-assistant/releases/tag/v0.9.0
+[Unreleased]: https://github.com/nithinmohantk/dotnet-azure-ai-powered-code-review-assistant-poc-adventure/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/nithinmohantk/dotnet-azure-ai-powered-code-review-assistant-poc-adventure/compare/v0.9.0...v1.0.0
+[0.9.0]: https://github.com/nithinmohantk/dotnet-azure-ai-powered-code-review-assistant-poc-adventure/releases/tag/v0.9.0

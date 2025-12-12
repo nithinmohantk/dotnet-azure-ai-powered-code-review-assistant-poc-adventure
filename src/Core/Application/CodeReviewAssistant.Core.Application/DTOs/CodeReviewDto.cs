@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using CodeReviewAssistant.Core.Domain.Events;
 
-namespace CodeReviewAssistant.Application.DTOs
+namespace CodeReviewAssistant.Core.Application.DTOs
 {
     public class CodeReviewDto
     {
@@ -24,6 +25,8 @@ namespace CodeReviewAssistant.Application.DTOs
         public List<ReviewIssueDto> Issues { get; set; }
         public List<ReviewCommentDto> Comments { get; set; }
         public List<ReviewFileDto> Files { get; set; }
+        public bool Success { get; set; }
+        public Guid CodeReviewId { get; set; }
     }
 
     public class ReviewIssueDto
@@ -140,5 +143,13 @@ namespace CodeReviewAssistant.Application.DTOs
         public Dictionary<ReviewStatus, int> ReviewsByStatus { get; set; }
         public Dictionary<Priority, int> ReviewsByPriority { get; set; }
         public Dictionary<IssueCategory, int> IssuesByCategory { get; set; }
+    }
+
+    public class CreateCodeReviewResult
+    {
+        public bool Success { get; set; }
+        public Guid CodeReviewId { get; set; }
+        public string Message { get; set; }
+        public CodeReviewDto CodeReview { get; set; }
     }
 }

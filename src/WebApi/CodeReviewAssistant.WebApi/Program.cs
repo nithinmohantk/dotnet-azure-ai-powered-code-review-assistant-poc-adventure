@@ -1,4 +1,6 @@
+using CodeReviewAssistant.Infrastructure.Persistence.HealthChecks;
 using CodeReviewAssistant.WebApi.Middleware;
+using CodeReviewAssistant.WebApi.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -55,7 +57,7 @@ try
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
-            options.Authority = $\"{builder.Configuration["AzureAd:Instance"]}{builder.Configuration["AzureAd:TenantId"]}";
+            options.Authority = $"{builder.Configuration["AzureAd:Instance"]}{builder.Configuration["AzureAd:TenantId"]}";
             options.Audience = builder.Configuration["AzureAd:ClientId"];
         });
 
@@ -71,8 +73,18 @@ try
                    .AllowAnyHeader());
     });
 
+    // Update Program.cs to add these lines in the services configuration:
+    builder.Services.AddHealthChecks()
+        .AddCheck<DatabaseHealthCheck>("database");
+    // Add after AddControllers():
+    builder.Services.Configure<RouteOptions>(options => 
+    {
+        options.LowercaseUrls = true;
+        options.LowercaseQueryStrings = true;
+    });
+
     // Register application services
-    builder.Services.AddApplicationServices();
+    builder.Services.AddOpenTelemetryObservability(builder.Configuration);
     builder.Services.AddInfrastructureServices(builder.Configuration);
     builder.Services.AddInfrastructureMessaging(builder.Configuration);
 

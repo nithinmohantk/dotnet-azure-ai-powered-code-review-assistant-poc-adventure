@@ -6,10 +6,11 @@ using MediatR;
 using FluentValidation;
 using CodeReviewAssistant.Core.Domain.Entities;
 using CodeReviewAssistant.Core.Domain.ValueObjects;
-using CodeReviewAssistant.Application.Interfaces;
-using CodeReviewAssistant.Application.DTOs;
+using CodeReviewAssistant.Core.Domain.Events;
+using CodeReviewAssistant.Core.Application.Interfaces;
+using CodeReviewAssistant.Core.Application.DTOs;
 
-namespace CodeReviewAssistant.Application.Commands
+namespace CodeReviewAssistant.Core.Application.Commands
 {
     public record CreateCodeReviewCommand(
         string Title,
@@ -61,7 +62,7 @@ namespace CodeReviewAssistant.Application.Commands
         {
             try
             {
-                GitHubRepository.FromUrl(url);
+                CodeReviewAssistant.Core.Domain.ValueObjects.GitHubRepository.FromUrl(url);
                 return true;
             }
             catch
@@ -90,7 +91,46 @@ namespace CodeReviewAssistant.Application.Commands
         public async Task<CodeReviewDto> Handle(CreateCodeReviewCommand request, CancellationToken cancellationToken)
         {
             // Validate GitHub repository access
-            var repository = GitHubRepository.FromUrl(request.RepositoryUrl);
+            var domainRepository = CodeReviewAssistant.Core.Domain.ValueObjects.GitHubRepository.FromUrl(request.RepositoryUrl);
+            var repository = new CodeReviewAssistant.Core.Application.Interfaces.GitHubRepository
+            {
+                Id = 0, // Will be set by GitHub API
+                Name = domainRepository.Name,
+                FullName = domainRepository.Owner + "/" + domainRepository.Name,
+                Description = "",
+                Private = false,
+                HtmlUrl = domainRepository.Url,
+                Fork = false,
+                DefaultBranch = "main",
+                Owner = new CodeReviewAssistant.Core.Application.Interfaces.GitHubUser
+                {
+                    Login = domainRepository.Owner,
+                    Id = 0,
+                    AvatarUrl = "",
+                    HtmlUrl = "",
+                    Type = "User",
+                    SiteAdmin = false,
+                    Name = "",
+                    Company = "",
+                    Blog = "",
+                    Location = "",
+                    Email = "",
+                    Hireable = false,
+                    Bio = "",
+                    Followers = 0,
+                    Following = 0,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                Stats = new CodeReviewAssistant.Core.Application.Interfaces.GitHubRepositoryStats
+                {
+                    Forks = 0,
+                    OpenIssues = 0,
+                    Watchers = 0,
+                    Stargazers = 0,
+                    Size = 0
+                }
+            };
             await _gitHubService.ValidateRepositoryAccessAsync(repository, cancellationToken);
 
             // Create code review
@@ -136,7 +176,7 @@ namespace CodeReviewAssistant.Application.Commands
                 Status = codeReview.Status,
                 Priority = codeReview.Priority,
                 RequestedBy = codeReview.RequestedBy,
-                Created = codeReview.Created,
+                Created = codeReview.Created ?? DateTime.UtcNow,
                 Summary = codeReview.Summary,
                 TotalIssues = codeReview.TotalIssues,
                 CriticalIssues = codeReview.CriticalIssues,

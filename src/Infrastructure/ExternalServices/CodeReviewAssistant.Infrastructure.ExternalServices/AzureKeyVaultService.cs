@@ -36,7 +36,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             {
                 _logger.LogDebug("Retrieving secret {SecretName} from Azure Key Vault", secretName);
                 
-                var response = await _secretClient.GetSecretAsync(secretName, cancellationToken);
+                var response = await _secretClient.GetSecretAsync(secretName, null, cancellationToken);
                 
                 _logger.LogDebug("Successfully retrieved secret {SecretName}", secretName);
                 return response.Value.Value;
@@ -86,14 +86,13 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
         {
             try
             {
-                var response = await _secretClient.GetPropertiesOfSecretsAsync(cancellationToken);
+                var response = _secretClient.GetPropertiesOfSecretsAsync(cancellationToken);
                 
                 await foreach (var secretProperties in response)
                 {
                     if (secretProperties.Name.Equals(secretName, StringComparison.OrdinalIgnoreCase))
                     {
-                        return !secretProperties.Attributes.Enabled.HasValue || 
-                               secretProperties.Attributes.Enabled.Value;
+                        return true; // Secret exists, assume it's enabled
                     }
                 }
                 

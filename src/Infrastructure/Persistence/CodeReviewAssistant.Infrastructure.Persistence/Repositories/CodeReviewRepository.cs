@@ -5,8 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CodeReviewAssistant.Core.Domain.Entities;
-using CodeReviewAssistant.Application.Interfaces;
-using CodeReviewAssistant.Infrastructure.Persistence.Contexts;
+using CodeReviewAssistant.Core.Application.Interfaces;
+using CodeReviewAssistant.Infrastructure.Persistence;
+using CodeReviewAssistant.Core.Domain.Events;
 
 namespace CodeReviewAssistant.Infrastructure.Persistence.Repositories
 {
@@ -53,8 +54,7 @@ namespace CodeReviewAssistant.Infrastructure.Persistence.Repositories
             return await _context.CodeReviews
                 .Where(cr => cr.RepositoryUrl == repositoryUrl)
                 .OrderByDescending(cr => cr.Created)
-                .ToListAsync(cancellationToken.
-                ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<CodeReview> GetWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)

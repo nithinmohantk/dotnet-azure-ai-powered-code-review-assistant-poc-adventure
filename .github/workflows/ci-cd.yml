@@ -76,7 +76,7 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Cache NuGet packages
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -93,7 +93,7 @@ jobs:
       run: dotnet test --no-build -c Release --verbosity normal --collect:"XPlat Code Coverage"
 
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: '**/coverage.cobertura.xml'
         flags: unittests

@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeReviewAssistant.Core.Domain.Common;
+using CodeReviewAssistant.Core.Domain.Entities;
 
 namespace CodeReviewAssistant.Infrastructure.Persistence
 {
@@ -16,7 +17,7 @@ namespace CodeReviewAssistant.Infrastructure.Persistence
         }
 
         // Add your DbSet properties here
-        // public DbSet<YourEntity> YourEntities { get; set; }
+        public DbSet<CodeReview> CodeReviews { get; set; }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {

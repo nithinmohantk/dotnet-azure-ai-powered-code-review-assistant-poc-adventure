@@ -5,6 +5,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Reflection;
+using System.Diagnostics.Metrics;
 
 namespace CodeReviewAssistant.WebApi.Extensions
 {
@@ -29,126 +30,33 @@ namespace CodeReviewAssistant.WebApi.Extensions
                         configuration.GetValue<string>("ASPNETCORE_ENVIRONMENT") ?? "Development")
                 });
 
-            // Add Tracing
-            services.AddOpenTelemetryTracing(builder =>
-            {
-                builder
-                    .SetResourceBuilder(resourceBuilder)
-                    .AddSource(serviceName)
-                    .AddAspNetCoreInstrumentation(options =>
-                    {
-                        options.RecordException = true;
-                        options.EnrichWithHttpRequest = (activity, request) =>
-                        {
-                            activity.SetTag("http.method", request.Method);
-                            activity.SetTag("http.url", request.Scheme + "://" + request.Host + request.Path);
-                            activity.SetTag("http.host", request.Host.ToString());
-                            activity.SetTag("http.scheme", request.Scheme);
-                            activity.SetTag("http.user_agent", request.Headers["User-Agent"].ToString());
-                            activity.SetTag("http.remote_addr", request.HttpContext.Connection.RemoteIpAddress?.ToString());
-                        };
-                        options.EnrichWithHttpResponse = (activity, response) =>
-                        {
-                            activity.SetTag("http.status_code", response.StatusCode);
-                            activity.SetStatus(response.StatusCode < 400 ? 
-                                ActivityStatusCode.Ok : ActivityStatusCode.Error);
-                        };
-                        options.EnrichWithException = (activity, exception) =>
-                        {
-                            activity.SetTag("error.type", exception.GetType().Name);
-                            activity.SetTag("error.message", exception.Message);
-                            activity.SetTag("error.stack_trace", exception.StackTrace);
-                        };
-                    })
-                    .AddHttpClientInstrumentation(options =>
-                    {
-                        options.RecordException = true;
-                        options.EnrichWithHttpRequestMessage = (activity, request) =>
-                        {
-                            activity.SetTag("http.method", request.Method.Method);
-                            activity.SetTag("http.url", request.RequestUri?.ToString());
-                            activity.SetTag("http.host", request.RequestUri?.Host);
-destination);
-                        };
-                        options.EnrichWithHttpResponseMessage = (activity, response `${response.StatusCode}`);
-                           yota
-                        options.Enrichlimited exception
-                        });
-                    })
-                    .AddEntityFrameworkCoreInstrumentation()
-                    .AddSqlClientInstrumentation()
-                    .AddRedisInstrumentation()
-                    .AddSource("MediatR")
-                    .AddSource("Azure.Messaging.ServiceBus")
-                    .AddSource("Azure.Cosmos");
-
-                if (enableConsoleExporter)
+            // Add OpenTelemetry
+            services.AddOpenTelemetry()
+                .WithTracing(builder =>
                 {
-                    builder.AddConsoleExporter();
-                }
-
-                if (enableOtlpExporter)
+                    builder
+                        .AddAspNetCoreInstrumentation()
+                        .AddSource(serviceName)
+                        .AddSource("MediatR")
+                        .AddSource("Azure.Messaging.ServiceBus")
+                        .AddSource("Azure.Cosmos");
+                })
+                .WithMetrics(builder =>
                 {
-                    builder.AddOtlpExporter(options =>
-                    {
-                        options.Endpoint = new Uri(otlpEndpoint);
-                        options.Headers = $"x-api-key={configuration.GetValue<string>("OpenTelemetry:ApiKey")}";
-                    });
-                }
-            });
-
-            // Add Metrics
-            services.AddOpenTelemetryMetrics(builder =>
-            {
-                builder
-                    .SetResourceBuilder(resourceBuilder)
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation()
-                    .AddProcessInstrumentation()
-                    .AddMeter(serviceName)
-                    .AddMeter("Microsoft.AspNetCore.Hosting")
-                    .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
-                    .AddMeter("System.Net.Http")
-                    .AddMeter("System.Net.NameResolution");
-
-                if (enableConsoleExporter)
-                {
-                    builder.AddConsoleExporter();
-                }
-
-                if (enableOtlpExporter)
-                {
-                    builder.AddOtlpExporter(options =>
-                    {
-                        options.Endpoint = new Uri(otlpEndpoint);
-                        options.Headers = $"x-api-key={configuration.GetValue<string>("OpenTelemetry:ApiKey")}";
-                    });
-                }
-            });
+                    builder
+                        .AddAspNetCoreInstrumentation()
+                        .AddMeter(serviceName)
+                        .AddMeter("Microsoft.AspNetCore.Hosting")
+                        .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
+                        .AddMeter("Microsoft.EntityFrameworkCore")
+                        .AddMeter("Azure.Cosmos");
+                });
 
             // Add Logging
             services.AddLogging(builder =>
             {
                 builder.AddConsole();
                 builder.AddDebug();
-                
-                if (enableOtlpExporter)
-                {
-                    builder.AddOpenTelemetry(options =>
-                    {
-                        options.SetResourceBuilder(resourceBuilder);
-                        options.IncludeFormattedMessage = true;
-                        options.IncludeScopes = true;
-                        options.ParseStateValues = true;
-                        
-                        options.AddOtlpExporter(otlpOptions =>
-                        {
-                            otlpOptions.Endpoint = new Uri(otlpEndpoint);
-                            otlpOptions.Headers = $"x-api-key={configuration.GetValue<string>("OpenTelemetry:ApiKey")}";
-                        });
-                    });
-                }
             });
 
             return services;
@@ -157,6 +65,20 @@ destination);
         public static IServiceCollection AddCustomMetrics(this IServiceCollection services)
         {
             services.AddSingleton<IMetricsService, MetricsService>();
+            return services;
+        }
+
+        public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            // For now, this is a placeholder - implementation would add infrastructure services
+            // like database, caching, etc.
+            return services;
+        }
+
+        public static IServiceCollection AddInfrastructureMessaging(this IServiceCollection services, IConfiguration configuration)
+        {
+            // For now, this is a placeholder - implementation would add messaging services
+            // like Service Bus, RabbitMQ, etc.
             return services;
         }
     }

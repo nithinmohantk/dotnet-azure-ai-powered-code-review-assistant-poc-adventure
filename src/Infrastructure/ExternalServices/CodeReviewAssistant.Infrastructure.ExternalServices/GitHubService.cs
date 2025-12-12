@@ -7,8 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using CodeReviewAssistant.Application.Interfaces;
+using CodeReviewAssistant.Core.Application.Interfaces;
 using CodeReviewAssistant.Core.Domain.ValueObjects;
+using DomainGitHubRepository = CodeReviewAssistant.Core.Domain.ValueObjects.GitHubRepository;
+using InterfaceGitHubRepository = CodeReviewAssistant.Core.Application.Interfaces.GitHubRepository;
 
 namespace CodeReviewAssistant.Infrastructure.ExternalServices
 {
@@ -34,11 +36,12 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CodeReviewAssistant/1.0");
         }
 
-        public async Task ValidateRepositoryAccessAsync(GitHubRepository repository, CancellationToken cancellationToken = default)
+        public async Task ValidateRepositoryAccessAsync(InterfaceGitHubRepository repository, CancellationToken cancellationToken = default)
         {
             try
             {
-                var response = await _httpClient.GetAsync(repository.ApiUrl, cancellationToken);
+                var apiUrl = $"https://api.github.com/repos/{repository.FullName}";
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 _logger.LogInformation("Successfully validated access to repository {Repository}", repository);
             }
@@ -49,13 +52,13 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<string> GetFileContentAsync(GitHubRepository repository, string branch, string filePath, CancellationToken cancellationToken = default)
+        public async Task<string> GetFileContentAsync(InterfaceGitHubRepository repository, string branch, string filePath, CancellationToken cancellationToken = default)
         {
-            var url = $"{repository.ApiUrl}/contents/{filePath}?ref={branch}";
+            var apiUrl = $"https://api.github.com/repos/{repository.FullName}/contents/{filePath}?ref={branch}";
             
             try
             {
-                var response = await _httpClient.GetAsync(url, cancellationToken);
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -76,13 +79,13 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<IEnumerable<GitHubFile>> GetRepositoryFilesAsync(GitHubRepository repository, string branch, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<GitHubFile>> GetRepositoryFilesAsync(InterfaceGitHubRepository repository, string branch, CancellationToken cancellationToken = default)
         {
-            var url = $"{repository.ApiUrl}/git/trees/{branch}?recursive=1";
+            var apiUrl = $"https://api.github.com/repos/{repository.FullName}/git/trees/{branch}?recursive=1";
             
             try
             {
-                var response = await _httpClient.GetAsync(url, cancellationToken);
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -113,13 +116,13 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<GitHubCommit> GetCommitDetailsAsync(GitHubRepository repository, string commitHash, CancellationToken cancellationToken = default)
+        public async Task<GitHubCommit> GetCommitDetailsAsync(InterfaceGitHubRepository repository, string commitHash, CancellationToken cancellationToken = default)
         {
-            var url = $"{repository.ApiUrl}/commits/{commitHash}";
+            var apiUrl = $"https://api.github.com/repos/{repository.FullName}/commits/{commitHash}";
             
             try
             {
-                var response = await _httpClient.GetAsync(url, cancellationToken);
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -144,7 +147,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
                         Username = commitData.Committer.Login
                     },
                     TreeSha = commitData.Tree.Sha,
-                    CommitDate = commitData.Commit.Author.Date,
+                    CommitDate = commitData.Author.Date,
                     ParentShas = commitData.Parents?.Select(p => p.Sha).ToList() ?? new List<string>(),
                     Files = commitData.Files?.Select(f => new GitHubCommitFile
                     {
@@ -174,13 +177,13 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<GitHubPullRequest> GetPullRequestDetailsAsync(GitHubRepository repository, int pullRequestNumber, CancellationToken cancellationToken = default)
+        public async Task<GitHubPullRequest> GetPullRequestDetailsAsync(InterfaceGitHubRepository repository, int pullRequestNumber, CancellationToken cancellationToken = default)
         {
-            var url = $"{repository.ApiUrl}/pulls/{pullRequestNumber}";
+            var apiUrl = $"https://api.github.com/repos/{repository.FullName}/pulls/{pullRequestNumber}";
             
             try
             {
-                var response = await _httpClient.GetAsync(url, cancellationToken);
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -219,7 +222,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
                         Type = prData.MergedBy.Type,
                         SiteAdmin = prData.MergedBy.SiteAdmin
                     } : null,
-                    Repository = new GitHubRepository
+                    Repository = new InterfaceGitHubRepository
                     {
                         Id = prData.Base.Repo.Id,
                         Name = prData.Base.Repo.Name,
@@ -248,17 +251,17 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<IEnumerable<GitHubPullRequest>> GetPullRequestsAsync(GitHubRepository repository, string branch = null, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<GitHubPullRequest>> GetPullRequestsAsync(InterfaceGitHubRepository repository, string branch = null, CancellationToken cancellationToken = default)
         {
-            var url = $"{repository.ApiUrl}/pulls";
+            var apiUrl = $"https://api.github.com/repos/{repository.FullName}/pulls";
             if (!string.IsNullOrEmpty(branch))
             {
-                url += $"?base={branch}";
+                apiUrl += $"?base={branch}";
             }
             
             try
             {
-                var response = await _httpClient.GetAsync(url, cancellationToken);
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -297,15 +300,15 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<string> CreatePullRequestCommentAsync(GitHubRepository repository, int pullRequestNumber, string body, CancellationToken cancellationToken = default)
+        public async Task<string> CreatePullRequestCommentAsync(InterfaceGitHubRepository repository, int pullRequestNumber, string body, CancellationToken cancellationToken = default)
         {
-            var url = $"{repository.ApiUrl}/issues/{pullRequestNumber}/comments";
+            var apiUrl = $"https://api.github.com/repos/{repository.FullName}/issues/{pullRequestNumber}/comments";
             var payload = new { body };
             
             try
             {
                 var content = JsonSerializer.Serialize(payload);
-                var response = await _httpClient.PostAsync(url, new StringContent(content, System.Text.Encoding.UTF8, "application/json"), cancellationToken);
+                var response = await _httpClient.PostAsync(apiUrl, new StringContent(content, System.Text.Encoding.UTF8, "application/json"), cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -320,15 +323,15 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<string> CreateCommitCommentAsync(GitHubRepository repository, string commitHash, string body, string filePath = null, int? line = null, CancellationToken cancellationToken = default)
+        public async Task<string> CreateCommitCommentAsync(InterfaceGitHubRepository repository, string commitHash, string body, string filePath = null, int? line = null, CancellationToken cancellationToken = default)
         {
-            var url = $"{repository.ApiUrl}/commits/{commitHash}/comments";
+            var apiUrl = $"https://api.github.com/repos/{repository.FullName}/commits/{commitHash}/comments";
             var payload = new { body, path = filePath, line };
             
             try
             {
                 var content = JsonSerializer.Serialize(payload);
-                var response = await _httpClient.PostAsync(url, new StringContent(content, System.Text.Encoding.UTF8, "application/json"), cancellationToken);
+                var response = await _httpClient.PostAsync(apiUrl, new StringContent(content, System.Text.Encoding.UTF8, "application/json"), cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -343,18 +346,19 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<GitHubRepositoryInfo> GetRepositoryInfoAsync(GitHubRepository repository, CancellationToken cancellationToken = default)
+        public async Task<GitHubRepositoryInfo> GetRepositoryInfoAsync(InterfaceGitHubRepository repository, CancellationToken cancellationToken = default)
         {
             try
             {
-                var response = await _httpClient.GetAsync(repository.ApiUrl, cancellationToken);
+                var apiUrl = $"https://api.github.com/repos/{repository.FullName}";
+                var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
                 var repoData = JsonSerializer.Deserialize<GitHubRepositoryResponse>(content);
 
                 // Get languages
-                var languagesUrl = $"{repository.ApiUrl}/languages";
+                var languagesUrl = $"https://api.github.com/repos/{repository.FullName}/languages";
                 var languagesResponse = await _httpClient.GetAsync(languagesUrl, cancellationToken);
                 var languagesContent = await languagesResponse.Content.ReadAsStringAsync(cancellationToken);
                 var languagesData = JsonSerializer.Deserialize<Dictionary<string, int>>(languagesContent);
@@ -372,7 +376,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
                         OpenIssues = repoData.OpenIssuesCount,
                         Watchers = repoData.WatchersCount,
                         Stargazers = repoData.StargazersCount,
-                        Size = repoData.Size
+                        Size = (int)repoData.Size
                     },
                     Languages = languagesData?.Keys.ToList() ?? new List<string>(),
                     CreatedAt = repoData.CreatedAt,
@@ -385,6 +389,38 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
                 _logger.LogError(ex, "Failed to get repository info for {Repository}", repository);
                 throw new InvalidOperationException($"Cannot get repository info", ex);
             }
+        }
+
+        public bool ValidateWebhookSignature(string requestBody, string signature)
+        {
+            try
+            {
+                var secret = _configuration["GitHub:WebhookSecret"];
+                if (string.IsNullOrEmpty(secret))
+                {
+                    _logger.LogWarning("GitHub webhook secret not configured");
+                    return false;
+                }
+
+                var expectedSignature = $"sha256={ComputeHmacSha256(secret, requestBody)}";
+                return string.Equals(signature, expectedSignature, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to validate webhook signature");
+                return false;
+            }
+        }
+
+        private string ComputeHmacSha256(string secret, string payload)
+        {
+            var keyBytes = System.Text.Encoding.UTF8.GetBytes(secret);
+            var payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            
+            using var hmac = new System.Security.Cryptography.HMACSHA256(keyBytes);
+            var hashBytes = hmac.ComputeHash(payloadBytes);
+            
+            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
     }
 

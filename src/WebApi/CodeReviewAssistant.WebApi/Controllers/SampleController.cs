@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CodeReviewAssistant.WebApi.Controllers
 {
     [ApiController]
-    [Route(""api/[controller]"")]
+    [Route("api/[controller]")]
     [Authorize]
     public class SampleController : ControllerBase
     {
@@ -18,15 +18,15 @@ namespace CodeReviewAssistant.WebApi.Controllers
         [HttpGet]
         public IActionResult Get()
         {
-            _logger.LogInformation(""Sample Get endpoint called"");
-            return Ok(new { Message = ""Hello from Code Review Assistant API!"" });
+            _logger.LogInformation("Sample Get endpoint called");
+            return Ok(new { Message = "Hello from Code Review Assistant API!" });
         }
 
-        [HttpGet(""secure"")]
-        [Authorize(Roles = ""Admin"")]
+        [HttpGet("secure")]
+        [Authorize(Roles = "Admin")]
         public IActionResult GetSecure()
         {
-            return Ok(new { Message = ""This is a secure endpoint"" });
+            return Ok(new { Message = "This is a secure endpoint" });
         }
     }
 }

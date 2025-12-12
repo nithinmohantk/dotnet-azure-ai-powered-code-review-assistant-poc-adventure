@@ -1,4 +1,3 @@
-using Azure.Cosmos;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -8,12 +7,12 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
 {
     public interface IAzureCosmosDbService
     {
-        Task<T> GetItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default);
-        Task<IEnumerable<T>> GetItemsAsync<T>(string query, CancellationToken cancellationToken = default);
-        Task<T> CreateItemAsync<T>(T item, CancellationToken cancellationToken = default);
-        Task<T> UpdateItemAsync<T>(string id, T item, string partitionKey, CancellationToken cancellationToken = default);
-        Task DeleteItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default);
-        Task<bool> ItemExistsAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default);
+        Task<T> GetItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default) where T : class;
+        Task<IEnumerable<T>> GetItemsAsync<T>(string query, CancellationToken cancellationToken = default) where T : class;
+        Task<T> CreateItemAsync<T>(T item, CancellationToken cancellationToken = default) where T : class;
+        Task<T> UpdateItemAsync<T>(string id, T item, string partitionKey, CancellationToken cancellationToken = default) where T : class;
+        Task DeleteItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default) where T : class;
+        Task<bool> ItemExistsAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default) where T : class;
     }
 
     public class AzureCosmosDbService : IAzureCosmosDbService
@@ -53,14 +52,14 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             return database.GetContainer(_containerName);
         }
 
-        public async Task<T> GetItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default)
+        public async Task<T> GetItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
                 _logger.LogDebug("Retrieving item {Id} with partition key {PartitionKey}", id, partitionKey);
                 
                 var container = GetContainer();
-                var response = await container.ReadItemAsync<T>(id, new PartitionKey(partitionKey), cancellationToken);
+                var response = await container.ReadItemAsync<T>(id, new PartitionKey(partitionKey), null, cancellationToken);
                 
                 _logger.LogDebug("Successfully retrieved item {Id}", id);
                 return response.Resource;
@@ -77,7 +76,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<IEnumerable<T>> GetItemsAsync<T>(string query, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<T>> GetItemsAsync<T>(string query, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
@@ -104,7 +103,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<T> CreateItemAsync<T>(T item, CancellationToken cancellationToken = default)
+        public async Task<T> CreateItemAsync<T>(T item, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
@@ -113,7 +112,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
                 var container = GetContainer();
                 var response = await container.CreateItemAsync(item, cancellationToken: cancellationToken);
                 
-                _logger.LogDebug("Successfully created item with ID: {Id}", response.Resource.Id);
+                _logger.LogDebug("Successfully created item");
                 return response.Resource;
             }
             catch (Exception ex)
@@ -123,7 +122,7 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<T> UpdateItemAsync<T>(string id, T item, string partitionKey, CancellationToken cancellationToken = default)
+        public async Task<T> UpdateItemAsync<T>(string id, T item, string partitionKey, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
@@ -142,14 +141,14 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task DeleteItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default)
+        public async Task DeleteItemAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
                 _logger.LogDebug("Deleting item {Id}", id);
                 
                 var container = GetContainer();
-                await container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey), cancellationToken);
+                await container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey), null, cancellationToken);
                 
                 _logger.LogDebug("Successfully deleted item {Id}", id);
             }
@@ -164,12 +163,12 @@ namespace CodeReviewAssistant.Infrastructure.ExternalServices
             }
         }
 
-        public async Task<bool> ItemExistsAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default)
+        public async Task<bool> ItemExistsAsync<T>(string id, string partitionKey, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
                 var container = GetContainer();
-                var response = await container.ReadItemStreamAsync(id, new PartitionKey(partitionKey), cancellationToken);
+                var response = await container.ReadItemStreamAsync(id, new PartitionKey(partitionKey), null, cancellationToken);
                 return response.StatusCode == System.Net.HttpStatusCode.OK;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)

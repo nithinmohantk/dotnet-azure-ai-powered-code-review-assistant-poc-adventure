@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CodeReviewAssistant.Core.Domain.Common;
 using CodeReviewAssistant.Core.Domain.ValueObjects;
+using CodeReviewAssistant.Core.Domain.Events;
 
 namespace CodeReviewAssistant.Core.Domain.Entities
 {
@@ -121,22 +122,5 @@ namespace CodeReviewAssistant.Core.Domain.Entities
             MajorIssues = _issues.Count(i => i.Severity == Severity.Major);
             MinorIssues = _issues.Count(i => i.Severity == Severity.Minor);
         }
-    }
-
-    public enum ReviewStatus
-    {
-        Pending,
-        InProgress,
-        Completed,
-        Failed,
-        Cancelled
-    }
-
-    public enum Priority
-    {
-        Low,
-        Medium,
-        High,
-        Critical
     }
 }

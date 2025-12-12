@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeReviewAssistant.Core.Domain.Entities;
+using CodeReviewAssistant.Core.Domain.Events;
 
-namespace CodeReviewAssistant.Application.Interfaces
+namespace CodeReviewAssistant.Core.Application.Interfaces
 {
     public interface ICodeReviewRepository
     {

@@ -1,5 +1,6 @@
 using System;
 using CodeReviewAssistant.Core.Domain.Common;
+using CodeReviewAssistant.Core.Domain.Events;
 using CodeReviewAssistant.Core.Domain.ValueObjects;
 
 namespace CodeReviewAssistant.Core.Domain.Entities
@@ -105,21 +106,5 @@ namespace CodeReviewAssistant.Core.Domain.Entities
         Major,
         Critical,
         Blocker
-    }
-
-    public enum IssueCategory
-    {
-        Security,
-        Performance,
-        CodeQuality,
-        Maintainability,
-        Reliability,
-        Documentation,
-        BestPractices,
-        Style,
-        ErrorHandling,
-        Testing,
-        Architecture,
-        Other
     }
 }

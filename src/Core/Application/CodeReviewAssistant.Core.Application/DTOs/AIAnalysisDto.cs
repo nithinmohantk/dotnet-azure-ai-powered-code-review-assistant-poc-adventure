@@ -1,7 +1,16 @@
 using System;
+using System.Collections.Generic;
+using CodeReviewAssistant.Core.Domain.Events;
 
 namespace CodeReviewAssistant.Core.Application.DTOs
 {
+    public enum ConfidenceLevel
+    {
+        Low,
+        Medium,
+        High,
+        VeryHigh
+    }
     public class AIAnalysisDto
     {
         public Guid Id { get; set; }
@@ -39,4 +48,6 @@ namespace CodeReviewAssistant.Core.Application.DTOs
         public ConfidenceLevel Confidence { get; set; }
         public string Metadata { get; set; }
         public bool IsActionable { get; set; }
-        public bool IsAutomaticallyFixable;
+        public bool IsAutomaticallyFixable { get; set; }
+    }
+}

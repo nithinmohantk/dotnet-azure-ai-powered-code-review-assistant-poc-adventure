@@ -28,7 +28,7 @@ jobs:
       run: dotnet test ./tests/Integration --no-build --configuration Release --verbosity normal
     
     - name: Security Scan
-      uses: github/super-linter@v4
+      uses: github/super-linter@v7
       env:
         DEFAULT_BRANCH: main
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

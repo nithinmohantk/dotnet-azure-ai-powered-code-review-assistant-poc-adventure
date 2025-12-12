@@ -93,7 +93,7 @@ jobs:
       run: dotnet test --no-build -c Release --verbosity normal --collect:"XPlat Code Coverage"
 
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: '**/coverage.cobertura.xml'
         flags: unittests

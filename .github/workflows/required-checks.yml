@@ -42,6 +42,6 @@ jobs:
         fail-on-severity: moderate
     
     - name: License Check
-      uses: fossa-contrib/fossa-action@v2
+      uses: fossa-contrib/fossa-action@v3
       with:
         api-key: ${{ secrets.FOSSA_API_KEY }}
